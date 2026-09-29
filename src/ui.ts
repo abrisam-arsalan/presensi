@@ -1,7 +1,7 @@
 import { esc, roleLabel } from "./util";
 import type { User } from "./auth";
 
-export const APP_NAME = "SekolahApp";
+export const APP_NAME = "Panglima App";
 export const APP_TAGLINE = "Rekap Kehadiran Siswa";
 
 interface NavItem {
@@ -101,12 +101,13 @@ export function page(opts: { title: string; ctx: Ctx; content: string; active?: 
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#3858F8">
 <meta name="csrf-token" content="${esc(opts.ctx.csrf ?? "")}">
+<link rel="icon" type="image/png" href="/assets/logo.png">
 <title>${esc(opts.title)} · ${APP_NAME}</title>
-<link rel="stylesheet" href="/assets/style.css?v=7">
+<link rel="stylesheet" href="/assets/style.css?v=8">
 </head>
 <body class="role-${esc(user.role)}">
 <header class="topbar">
-  <a class="brand" href="${homeFor(user.role)}"><span class="brand-logo">🏫</span><span class="brand-text">${APP_NAME}<small>${APP_TAGLINE}</small></span></a>
+  <a class="brand" href="${homeFor(user.role)}"><img class="brand-logo" src="/assets/logo.png" alt="Logo"><span class="brand-text">${APP_NAME}<small>${APP_TAGLINE}</small></span></a>
   <div class="topbar-right">
     <div class="userchip">
       <span class="avatar">${esc(initials(user.nama))}</span>

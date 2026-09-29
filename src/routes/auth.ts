@@ -13,13 +13,14 @@ function loginPage(error?: string): Response {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#3858F8">
+<link rel="icon" type="image/png" href="/assets/logo.png">
 <title>Login · ${APP_NAME}</title>
-<link rel="stylesheet" href="/assets/style.css?v=7">
+<link rel="stylesheet" href="/assets/style.css?v=8">
 </head>
 <body class="role-guest">
 <div class="auth-wrap">
   <form class="auth-card" method="post" action="/login">
-    <div class="auth-logo">🏫</div>
+    <img class="auth-logo" src="/assets/logo.png" alt="Logo">
     <h1>${APP_NAME}</h1>
     <p class="auth-sub">${APP_TAGLINE}</p>
     ${err}
@@ -30,11 +31,6 @@ function loginPage(error?: string): Response {
       <input class="input" type="password" name="password" placeholder="••••••••" autocomplete="current-password" required>
     </label>
     <button class="btn btn-primary btn-block" type="submit">Masuk</button>
-    <div class="auth-hint">
-      <b>Akun demo:</b><br>
-      admin / admin123 · kepsek / kepsek123<br>
-      guru.budi / guru123 · siswa.andi / siswa123 · orangtua.surya / ortu123
-    </div>
   </form>
 </div>
 </body>

@@ -1,0 +1,5 @@
+# Tambahkan baris berikut di bawah ingress ujian & mpi di /etc/cloudflared/config.yml
+# Pastikan indentasi menggunakan 2 spasi
+
+  - hostname: presensi.smp5tegal.sch.id
+    service: http://localhost:80

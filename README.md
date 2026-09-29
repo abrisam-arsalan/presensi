@@ -1,4 +1,4 @@
-# SekolahApp — Rekap Kehadiran Siswa
+# Panglima App — Rekap Kehadiran Siswa
 
 Aplikasi sekolah berbasis web untuk merekap kehadiran siswa, lengkap dengan
 pengelolaan jadwal, materi pelajaran, dan catatan kelas. **Mobile-friendly**
@@ -152,32 +152,90 @@ sudo systemctl status sekolah-app
 
 Aplikasi akan berjalan di `127.0.0.1:3000`.
 
-### 4. Reverse proxy dengan Nginx
+### 4. Tambah vhost Nginx untuk presensi
+
+Server sudah memiliki setup Cloudflare Tunnel untuk `ujian` dan `mpi`. Nginx di server listen port 80 dan memilah traffic berdasarkan `server_name`. Tambahkan vhost presensi:
 
 ```bash
-sudo apt update
-sudo apt install nginx
 sudo cp deploy/nginx-presensi.conf /etc/nginx/sites-available/presensi
 sudo ln -s /etc/nginx/sites-available/presensi /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl restart nginx
 ```
 
-### 5. Konfigurasi Cloudflare
+> Tidak perlu sertifikat SSL di server karena enkripsi diurus Cloudflare Tunnel.
 
-1. Login Cloudflare → pilih domain `smp5tegal.sch.id`.
-2. Tambahkan **DNS record**:
-   - Type: `A`
-   - Name: `presensi`
-   - Target: IP publik server Ubuntu
-   - Proxy status: Aktif (orange cloud)
-3. Menu **SSL/TLS → Overview**:
-   - Pilih mode **Full (strict)** jika di server sudah install sertifikat origin (misal Cloudflare Origin CA).
-   - Atau pilih **Full** jika Nginx hanya listen HTTP port 80 (tidak disarankan untuk produksi jangka panjang).
-4. Aktifkan **Always Use HTTPS**.
-5. Tunggu propagasi DNS, lalu akses `https://presensi.smp5tegal.sch.id`.
+### 5. Tambah hostname presensi ke Cloudflare Tunnel
 
-> **Tips:** Jika tidak ingin repot dengan Nginx & sertifikat, gunakan **Cloudflare Tunnel** (`cloudflared`) agar server tidak perlu membuka port 80/443 sama sekali.
+Edit konfigurasi tunnel yang sama dengan `ujian` dan `mpi` (biasanya tunnel `85966569`):
+
+```bash
+sudo nano /etc/cloudflared/config.yml
+```
+
+Tambahkan ingress `presensi` di bawah `ujian` dan `mpi`:
+
+```yaml
+  - hostname: ujian.smp5tegal.sch.id
+    service: http://localhost:80
+  - hostname: mpi.smp5tegal.sch.id
+    service: http://localhost:80
+  - hostname: presensi.smp5tegal.sch.id
+    service: http://localhost:80
+```
+
+> Perhatikan indentasi 2 spasi. Salah indentasi akan membuat cloudflared gagal start.
+
+Restart tunnel:
+
+```bash
+sudo systemctl restart cloudflared
+sudo systemctl status cloudflared
+```
+
+Tunggu beberapa saat, lalu akses `https://presensi.smp5tegal.sch.id`.
+
+> **Catatan DNS:** Jika `nslookup presensi.smp5tegal.sch.id` masih NXDOMAIN setelah beberapa menit, pastikan nameserver domain di registrar sudah mengarah ke Cloudflare (`darl.ns.cloudflare.com`, `ryleigh.ns.cloudflare.com`), bukan ke Hostinger (`dns-parking.com`).
+
+### 5a. Cek Cloudflare Tunnel yang sudah terinstal
+
+Jika server sudah pernah di-setup Cloudflare Tunnel, jalankan script pengecekan:
+
+```bash
+cd /var/www/presensi
+chmod +x deploy/check-cloudflare.sh
+sudo ./deploy/check-cloudflare.sh
+```
+
+Script tersebut akan mengecek:
+1. Apakah binary `cloudflared` tersedia di PATH.
+2. Versi `cloudflared`.
+3. Status service `cloudflared` (aktif/tidak, enable saat boot/tidak).
+4. Daftar tunnel yang terdaftar.
+5. Lokasi & isi file konfigurasi tunnel.
+6. Log terakhir service cloudflared.
+
+Atau cek manual satu per satu:
+
+```bash
+# Cek versi & lokasi binary
+which cloudflared
+cloudflared --version
+
+# Cek status service
+sudo systemctl status cloudflared
+
+# Cek daftar tunnel
+cloudflared tunnel list
+
+# Cek konfigurasi
+sudo cat /etc/cloudflared/config.yml
+# atau
+sudo cat ~/.cloudflared/config.yml
+
+# Cek log terakhir
+sudo journalctl -u cloudflared --no-pager -n 50
+```
 
 ### 6. Backup database
 

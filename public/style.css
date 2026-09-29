@@ -58,11 +58,8 @@ small { color: var(--muted); }
 }
 .brand { display: flex; align-items: center; gap: 11px; color: var(--text); }
 .brand-logo {
-  width: 40px; height: 40px; border-radius: 13px;
-  background: var(--primary); color: #fff;
-  display: inline-flex; align-items: center; justify-content: center;
-  font-size: 21px; flex-shrink: 0;
-  box-shadow: 0 6px 14px rgba(56, 88, 248, 0.3);
+  width: 40px; height: 40px; object-fit: contain;
+  flex-shrink: 0; background: transparent;
 }
 .brand-text { display: flex; flex-direction: column; line-height: 1.1; font-weight: 700; font-size: 16px; }
 .brand-text small { font-weight: 500; font-size: 11px; color: var(--muted); }
@@ -268,9 +265,8 @@ textarea.input { min-height: 96px; resize: vertical; }
   display: flex; flex-direction: column; gap: 13px;
 }
 .auth-logo {
-  width: 58px; height: 58px; border-radius: 17px; background: var(--primary); color: #fff;
-  display: inline-flex; align-items: center; justify-content: center; font-size: 29px;
-  margin: 0 auto; box-shadow: 0 8px 18px rgba(56, 88, 248, 0.3);
+  width: 72px; height: 72px; object-fit: contain;
+  display: block; margin: 0 auto; background: transparent;
 }
 .auth-card h1 { text-align: center; margin: 0; font-size: 23px; }
 .auth-sub { text-align: center; color: var(--muted); margin: 0 0 8px; }

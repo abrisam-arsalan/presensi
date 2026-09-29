@@ -58,7 +58,7 @@ async function main() {
   registerSiswa();
   registerOrtu();
 
-  console.log("\n== Smoke test SekolahApp ==\n");
+  console.log("\n== Smoke test Panglima App ==\n");
 
   // 1. Login page
   const lp = await req("GET", "/login");
