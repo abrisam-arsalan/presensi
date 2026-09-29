@@ -1,0 +1,12 @@
+# Database & data lokal (dibuat otomatis saat pertama jalan)
+data/
+*.db
+*.db-wal
+*.db-shm
+
+# Dependensi (tidak dipakai, tapi antisipasi)
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,10 @@
+{
+  "name": "sekolah-app",
+  "version": "1.0.0",
+  "description": "Aplikasi rekap kehadiran siswa berbasis web (mobile-friendly). Tanpa dependensi eksternal — berjalan di Bun.",
+  "type": "module",
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "dev": "bun --watch run src/index.ts"
+  }
+}

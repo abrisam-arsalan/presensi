@@ -1,0 +1,19 @@
+[Unit]
+Description=SekolahApp — Presensi SMP
+After=network.target
+
+[Service]
+Type=simple
+# Ganti user sesuai user yang menjalankan aplikasi di server
+User=deploy
+Group=deploy
+WorkingDirectory=/var/www/presensi
+Environment="HOST=127.0.0.1"
+Environment="PORT=3000"
+# Ganti path Bun sesuai lokasi instalasi di server (biasanya ~/.bun/bin/bun)
+ExecStart=/home/deploy/.bun/bin/bun run src/index.ts
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
