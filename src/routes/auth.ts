@@ -12,10 +12,10 @@ function loginPage(error?: string): Response {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#3858F8">
+<meta name="theme-color" content="#FFD43B">
 <link rel="icon" type="image/png" href="/assets/logo.png">
 <title>Login · ${APP_NAME}</title>
-<link rel="stylesheet" href="/assets/style.css?v=8">
+<link rel="stylesheet" href="/assets/style.css?v=9">
 </head>
 <body class="role-guest">
 <div class="auth-wrap">

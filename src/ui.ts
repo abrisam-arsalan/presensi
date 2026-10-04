@@ -99,11 +99,11 @@ export function page(opts: { title: string; ctx: Ctx; content: string; active?: 
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#3858F8">
+<meta name="theme-color" content="#FFD43B">
 <meta name="csrf-token" content="${esc(opts.ctx.csrf ?? "")}">
 <link rel="icon" type="image/png" href="/assets/logo.png">
 <title>${esc(opts.title)} · ${APP_NAME}</title>
-<link rel="stylesheet" href="/assets/style.css?v=8">
+<link rel="stylesheet" href="/assets/style.css?v=9">
 </head>
 <body class="role-${esc(user.role)}">
 <header class="topbar">
