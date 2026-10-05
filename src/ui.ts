@@ -103,7 +103,7 @@ export function page(opts: { title: string; ctx: Ctx; content: string; active?: 
 <meta name="csrf-token" content="${esc(opts.ctx.csrf ?? "")}">
 <link rel="icon" type="image/png" href="/assets/logo.png">
 <title>${esc(opts.title)} · ${APP_NAME}</title>
-<link rel="stylesheet" href="/assets/style.css?v=9">
+<link rel="stylesheet" href="/assets/style.css?v=10">
 </head>
 <body class="role-${esc(user.role)}">
 <header class="topbar">

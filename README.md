@@ -254,6 +254,53 @@ git pull origin main
 sudo systemctl restart sekolah-app
 ```
 
+## Import Bulk Siswa & Orang Tua
+
+Untuk memasukkan banyak siswa/orang tua sekaligus, isi template CSV lalu
+jalankan script import di server.
+
+### 1. Isi template
+
+Salin file di folder `templates/`, edit di Excel/Google Sheets, lalu simpan
+sebagai CSV (UTF-8).
+
+**`templates/template-siswa.csv`**
+
+| nis | nama | kelas | username | password |
+| --- | --- | --- | --- | --- |
+| 2026001 | Ahmad Fauzi | 7A | siswa.ahmad | siswa123 |
+| 2026002 | Siti Nurhaliza | 7A | siti.nur | siswa123 |
+
+**`templates/template-ortu.csv`**
+
+| nama | nis_anak | hubungan | username | password |
+| --- | --- | --- | --- | --- |
+| Surya Pratama | 2026001 | Ayah | ortu.surya | ortu123 |
+| Ratna Dewi | 2026002 | Ibu | ortu.ratna | ortu123 |
+
+Aturan:
+- **Siswa**: `nis` unik, `kelas` harus sudah dibuat di menu Admin → Kelas (boleh kosong), `username` 3-30 karakter (huruf/angka/titik/underscore), `password` minimal 5 karakter.
+- **Orang tua**: `nis_anak` harus merujuk ke NIS siswa yang sudah terdaftar — **import siswa dulu**, baru orang tua. `hubungan` hanya `Ayah` / `Ibu` / `Wali`.
+
+### 2. Cek dulu (dry-run)
+
+```bash
+cd /var/www/presensi
+bun run scripts/import-csv.ts templates/template-siswa.csv --dry-run
+```
+
+Script melaporkan semua baris bermasalah **tanpa** menyimpan apa pun.
+
+### 3. Import
+
+```bash
+bun run scripts/import-csv.ts templates/template-siswa.csv
+bun run scripts/import-csv.ts templates/template-ortu.csv
+```
+
+> Import bersifat **all-or-nothing**: bila ada satu baris error, tidak ada
+> data yang disimpan. Perbaiki baris itu lalu jalankan ulang.
+
 ## Catatan Teknis
 
 - Session memakai cookie `HttpOnly` + token acak (UUID) yang disimpan di tabel `sessions`.

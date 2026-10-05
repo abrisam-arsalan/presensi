@@ -37,6 +37,7 @@ export function initSchema() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
       nip TEXT,
+      kode TEXT,
       nama TEXT NOT NULL
     );
 
@@ -124,6 +125,12 @@ export function initSchema() {
     CREATE INDEX IF NOT EXISTS idx_pengumuman_target ON pengumuman(target);
     CREATE INDEX IF NOT EXISTS idx_pengumuman_author ON pengumuman(author_id);
   `);
+
+  // Migrasi: tambah kolom kode di guru untuk database yang sudah dibuat sebelumnya
+  const guruCols = db.query("PRAGMA table_info(guru)").all() as { name: string }[];
+  if (!guruCols.some((c) => c.name === "kode")) {
+    db.exec("ALTER TABLE guru ADD COLUMN kode TEXT");
+  }
 }
 
 function insertUser(username: string, nama: string, role: string, passwordHash: string): number {
@@ -159,8 +166,8 @@ export async function seedIfEmpty() {
 
   const g1u = insertUser("guru.budi", "Budi Santoso, S.Pd.", "guru", await h("guru123"));
   const g2u = insertUser("guru.siti", "Siti Rahayu, S.Pd.", "guru", await h("guru123"));
-  const g1 = Number(db.run("INSERT INTO guru (user_id, nip, nama) VALUES (?,?,?)", [g1u, "198501012010011001", "Budi Santoso, S.Pd."]).lastInsertRowid);
-  const g2 = Number(db.run("INSERT INTO guru (user_id, nip, nama) VALUES (?,?,?)", [g2u, "198802022012012002", "Siti Rahayu, S.Pd."]).lastInsertRowid);
+  const g1 = Number(db.run("INSERT INTO guru (user_id, nip, kode, nama) VALUES (?,?,?,?)", [g1u, "198501012010011001", "BUD", "Budi Santoso, S.Pd."]).lastInsertRowid);
+  const g2 = Number(db.run("INSERT INTO guru (user_id, nip, kode, nama) VALUES (?,?,?,?)", [g2u, "198802022012012002", "SIT", "Siti Rahayu, S.Pd."]).lastInsertRowid);
 
   // ---- Mata pelajaran ----
   const mapelDef = [

@@ -37,6 +37,11 @@ function guruOptions(selected?: number | string) {
   const rows = db.query("SELECT id, nama FROM guru ORDER BY nama").all() as { id: number; nama: string }[];
   return rows.map((r) => ({ value: r.id, label: r.nama }));
 }
+// Opsi wali kelas berdasarkan nama guru (nilai disimpan sebagai nama guru)
+function waliKelasOptions(selected?: string) {
+  const rows = db.query("SELECT nama FROM guru ORDER BY nama").all() as { nama: string }[];
+  return [{ value: "", label: "— Tanpa wali kelas —" }, ...rows.map((r) => ({ value: r.nama, label: r.nama }))];
+}
 function siswaOptions(selected?: number | string) {
   const rows = db.query("SELECT s.id, s.nama, k.nama AS kelas FROM siswa s LEFT JOIN kelas k ON k.id=s.kelas_id ORDER BY s.nama").all() as { id: number; nama: string; kelas: string }[];
   return rows.map((r) => ({ value: r.id, label: `${r.nama}${r.kelas ? ` (${r.kelas})` : ""}` }));
@@ -131,9 +136,9 @@ function listKelas(user: User, ctx: Ctx): Response {
     <div class="page-head"><h1>Data Kelas</h1></div>
     ${card("Tambah Kelas", `
       <form method="post" action="/admin/kelas" class="inline-form">
-        ${field("Nama Kelas", input("nama", "", { required: true, placeholder: "XII IPA 1" }))}
-        ${field("Tingkat", input("tingkat", "", { placeholder: "XII" }))}
-        ${field("Wali Kelas", input("wali_kelas", "", { placeholder: "Nama wali kelas" }))}
+        ${field("Nama Kelas", input("nama", "", { required: true, placeholder: "7A" }))}
+        ${field("Tingkat", input("tingkat", "", { placeholder: "7" }))}
+        ${field("Wali Kelas", select("wali_kelas", waliKelasOptions()))}
         ${button("Tambah", { tone: "primary" })}
       </form>`)}
     ${rows.length ? table(
@@ -176,7 +181,7 @@ function editKelas(user: User, ctx: Ctx): Response {
       <form method="post" action="/admin/kelas/${r.id}/update">
         ${field("Nama Kelas", input("nama", r.nama, { required: true }))}
         ${field("Tingkat", input("tingkat", r.tingkat ?? ""))}
-        ${field("Wali Kelas", input("wali_kelas", r.wali_kelas ?? ""))}
+        ${field("Wali Kelas", select("wali_kelas", waliKelasOptions(), r.wali_kelas ?? ""))}
         <div class="form-actions">${button("Simpan", { tone: "primary" })} ${linkBtn("/admin/kelas", "Batal", "ghost")}</div>
       </form>`)}`;
   return wrap(ctx, "Edit Kelas", "/admin/kelas", content);
@@ -289,12 +294,13 @@ function listGuru(user: User, ctx: Ctx): Response {
       <form method="post" action="/admin/guru" class="inline-form">
         ${field("Nama Lengkap", input("nama", "", { required: true }))}
         ${field("NIP", input("nip", ""))}
+        ${field("Kode Guru", input("kode", "", { placeholder: "BUD", required: true }))}
         ${field("Username", input("username", "", { required: true }))}
         ${field("Password", input("password", "", { type: "password", required: true }))}
         ${button("Tambah", { tone: "primary" })}
       </form>`)}
-    ${rows.length ? table(["Nama", "NIP", "Username", "Aksi"], rows.map((r) => [
-      `<b>${esc(r.nama)}</b>`, esc(r.nip ?? "-"), esc(r.username),
+    ${rows.length ? table(["Nama", "NIP", "Kode", "Username", "Aksi"], rows.map((r) => [
+      `<b>${esc(r.nama)}</b>`, esc(r.nip ?? "-"), `<b>${esc(r.kode ?? "-")}</b>`, esc(r.username),
       `<div class="row-actions">
         ${linkBtn(`/admin/guru/${r.id}/edit`, "Edit", "ghost")}
         <form method="post" action="/admin/guru/${r.id}/delete" class="inline">${button("Hapus", { tone: "danger", confirm: `Hapus guru ${r.nama}?` })}</form>
@@ -311,11 +317,12 @@ function createGuru(req: Request, ctx: Ctx): Response {
     const namaVal = (f.get("nama") ?? "").trim();
     const usernameVal = (f.get("username") ?? "").trim();
     const passwordVal = f.get("password") ?? "";
-    const err = run(namaVal, nama()) || run(usernameVal, username()) || run(passwordVal, password()) || run((f.get("nip") ?? "").trim(), [maxLength(30, "NIP")]);
+    const kodeVal = (f.get("kode") ?? "").trim();
+    const err = run(namaVal, nama()) || run(usernameVal, username()) || run(passwordVal, password()) || run(kodeVal, [required("Kode guru"), maxLength(10, "Kode guru"), pattern(/^[A-Za-z0-9]+$/, "Kode guru hanya boleh huruf/angka.")]) || run((f.get("nip") ?? "").trim(), [maxLength(30, "NIP")]);
     if (err) return redirect("/admin/guru?err=" + encodeURIComponent(err));
     try {
       const uid = await createUserHashed(usernameVal, passwordVal, namaVal, "guru");
-      db.run("INSERT INTO guru (user_id, nip, nama) VALUES (?,?,?)", [uid, (f.get("nip") ?? "").trim() || null, namaVal]);
+      db.run("INSERT INTO guru (user_id, nip, kode, nama) VALUES (?,?,?,?)", [uid, (f.get("nip") ?? "").trim() || null, kodeVal, namaVal]);
       return redirect("/admin/guru?ok=Guru ditambahkan");
     } catch (e: any) {
       return redirect("/admin/guru?err=" + encodeURIComponent("Username sudah dipakai atau data tidak valid."));
@@ -332,6 +339,7 @@ function editGuru(user: User, ctx: Ctx): Response {
       <form method="post" action="/admin/guru/${r.id}/update">
         ${field("Nama Lengkap", input("nama", r.nama, { required: true }))}
         ${field("NIP", input("nip", r.nip ?? ""))}
+        ${field("Kode Guru", input("kode", r.kode ?? "", { required: true }))}
         ${field("Username", input("username", r.username, { required: true }))}
         ${field("Password Baru (kosongkan jika tetap)", input("password", "", { type: "password" }))}
         <div class="form-actions">${button("Simpan", { tone: "primary" })} ${linkBtn("/admin/guru", "Batal", "ghost")}</div>
@@ -347,7 +355,8 @@ function updateGuru(req: Request, ctx: Ctx): Response {
     const namaVal = (f.get("nama") ?? "").trim();
     const usernameVal = (f.get("username") ?? "").trim();
     const passwordVal = f.get("password") ?? "";
-    const err = run(namaVal, nama()) || run(usernameVal, username()) || run((f.get("nip") ?? "").trim(), [maxLength(30, "NIP")]);
+    const kodeVal = (f.get("kode") ?? "").trim();
+    const err = run(namaVal, nama()) || run(usernameVal, username()) || run(kodeVal, [required("Kode guru"), maxLength(10, "Kode guru"), pattern(/^[A-Za-z0-9]+$/, "Kode guru hanya boleh huruf/angka.")]) || run((f.get("nip") ?? "").trim(), [maxLength(30, "NIP")]);
     if (err) return redirect("/admin/guru?err=" + encodeURIComponent(err));
     if (passwordVal) {
       const pwErr = run(passwordVal, password());
@@ -359,7 +368,7 @@ function updateGuru(req: Request, ctx: Ctx): Response {
       if (passwordVal) {
         db.run("UPDATE users SET password_hash=? WHERE id=?", [await hashPassword(passwordVal), g.user_id]);
       }
-      db.run("UPDATE guru SET nip=?, nama=? WHERE id=?", [(f.get("nip") ?? "").trim() || null, namaVal, ctx.params.id]);
+      db.run("UPDATE guru SET nip=?, kode=?, nama=? WHERE id=?", [(f.get("nip") ?? "").trim() || null, kodeVal, namaVal, ctx.params.id]);
       return redirect("/admin/guru?ok=Guru diperbarui");
     } catch (e: any) {
       return redirect("/admin/guru?err=" + encodeURIComponent("Username sudah dipakai."));
@@ -698,6 +707,7 @@ function listJadwal(user: User, ctx: Ctx): Response {
   const content = `
     ${okAlert(ctx)}
     <div class="page-head"><h1>Jadwal Pelajaran</h1></div>
+    <div class="form-actions" style="margin-bottom:16px">${linkBtn("/admin/jadwal/template", "🧩 Template Jadwal (JP 1–8)", "primary")}</div>
     ${card("Tambah Jadwal", `
       <form method="post" action="/admin/jadwal" class="inline-form">
         ${field("Kelas", select("kelas_id", kelasOptions()))}
@@ -783,6 +793,147 @@ function deleteJadwal(req: Request, ctx: Ctx): Response {
     if (csrfErr) return new Response(csrfErr, { status: 403 });
     db.run("DELETE FROM jadwal WHERE id=?", [ctx.params.id]);
     return redirect("/admin/jadwal?ok=Jadwal dihapus");
+  })();
+}
+
+// ---------- Template Jadwal ----------
+// Model SMP: JP 1-8 dengan 2 kali istirahat. Slot istirahat tidak diisi mapel/guru.
+const JADWAL_SLOTS: { jp?: number; istirahat?: number; mulai: string; selesai: string }[] = [
+  { jp: 1, mulai: "07:00", selesai: "07:35" },
+  { jp: 2, mulai: "07:35", selesai: "08:10" },
+  { istirahat: 1, mulai: "08:10", selesai: "08:25" },
+  { jp: 3, mulai: "08:25", selesai: "09:00" },
+  { jp: 4, mulai: "09:00", selesai: "09:35" },
+  { istirahat: 2, mulai: "09:35", selesai: "09:50" },
+  { jp: 5, mulai: "09:50", selesai: "10:25" },
+  { jp: 6, mulai: "10:25", selesai: "11:00" },
+  { jp: 7, mulai: "11:00", selesai: "11:35" },
+  { jp: 8, mulai: "11:35", selesai: "12:10" },
+];
+const TEMPLATE_DAYS = [1, 2, 3, 4, 5, 6]; // Senin - Sabtu
+
+function jadwalTemplatePage(user: User, ctx: Ctx): Response {
+  const kelasId = ctx.query.get("kelas_id") ?? "";
+  const kelasRows = db.query("SELECT id, nama FROM kelas ORDER BY nama").all() as { id: number; nama: string }[];
+  const mapelRows = db.query("SELECT nama, kode FROM mata_pelajaran WHERE kode IS NOT NULL AND TRIM(kode) != '' ORDER BY kode").all() as { nama: string; kode: string }[];
+  const guruRows = db.query("SELECT nama, kode FROM guru WHERE kode IS NOT NULL AND TRIM(kode) != '' ORDER BY kode").all() as { nama: string; kode: string }[];
+
+  let gridHtml = "";
+  if (kelasId) {
+    // Prefill dari jadwal yang sudah ada di kelas ini (dipasangkan via jam mulai)
+    const existing = db.query(
+      `SELECT j.hari, j.jam_mulai, mp.kode AS mapel_kode, g.kode AS guru_kode
+       FROM jadwal j JOIN mata_pelajaran mp ON mp.id=j.mata_pelajaran_id JOIN guru g ON g.id=j.guru_id
+       WHERE j.kelas_id = ?`, [kelasId],
+    ).all() as { hari: number; jam_mulai: string; mapel_kode: string; guru_kode: string }[];
+    const existMap = new Map<string, { m: string; g: string }>();
+    for (const e of existing) existMap.set(`${e.hari}|${e.jam_mulai}`, { m: e.mapel_kode ?? "", g: e.guru_kode ?? "" });
+
+    const head = TEMPLATE_DAYS.map((d) => `<th>${dayName(d)}</th>`).join("");
+    const body = JADWAL_SLOTS.map((slot) => {
+      if (slot.istirahat) {
+        const restCells = TEMPLATE_DAYS.map(() => `<td class="tpl-rest">istirahat</td>`).join("");
+        return `<tr><td class="tpl-slot"><b>Istirahat ${slot.istirahat}</b><br><small>${slot.mulai}–${slot.selesai}</small></td>${restCells}</tr>`;
+      }
+      const cells = TEMPLATE_DAYS.map((d) => {
+        const pre = existMap.get(`${d}|${slot.mulai}`);
+        return `<td><div class="tpl-cell">
+          <input class="input tpl-input" name="m_${d}_${slot.jp}" value="${esc(pre?.m ?? "")}" placeholder="mapel" maxlength="10" title="Kode mata pelajaran">
+          <input class="input tpl-input" name="g_${d}_${slot.jp}" value="${esc(pre?.g ?? "")}" placeholder="guru" maxlength="10" title="Kode guru">
+        </div></td>`;
+      }).join("");
+      return `<tr><td class="tpl-slot"><b>JP ${slot.jp}</b><br><small>${slot.mulai}–${slot.selesai}</small></td>${cells}</tr>`;
+    }).join("");
+
+    gridHtml = `
+      ${card("Grid Template — isi kode mapel & kode guru", `
+        <form method="post" action="/admin/jadwal/template">
+          <input type="hidden" name="kelas_id" value="${esc(kelasId)}">
+          <div class="table-wrap"><table class="table tpl-table">
+            <thead><tr><th>Slot</th>${head}</tr></thead>
+            <tbody>${body}</tbody>
+          </table></div>
+          <label class="tpl-check"><input type="checkbox" name="replace" value="1"> Hapus jadwal kelas ini sebelum menerapkan template</label>
+          <div class="form-actions">${button("💾 Terapkan Template", { tone: "primary" })}</div>
+        </form>`)}`;
+  } else {
+    gridHtml = `<div class="empty">Pilih kelas untuk memunculkan grid template.</div>`;
+  }
+
+  const kodeLegend = `
+    <div class="tpl-legend">
+      <div><b>📘 Kode Mata Pelajaran:</b><br>${mapelRows.map((m) => `<span class="badge badge-neutral"><b>${esc(m.kode)}</b> ${esc(m.nama)}</span>`).join(" ") || "<span class='muted'>Belum ada mapel berg kode.</span>"}</div>
+      <div><b>👨‍🏫 Kode Guru:</b><br>${guruRows.map((g) => `<span class="badge badge-neutral"><b>${esc(g.kode)}</b> ${esc(g.nama)}</span>`).join(" ") || "<span class='muted'>Belum ada guru berg kode.</span>"}</div>
+    </div>`;
+
+  const content = `
+    ${okAlert(ctx)}
+    <div class="page-head"><h1>Template Jadwal</h1>
+      <p>Model SMP: JP 1–8 dengan 2 istirahat. Isi <b>kode mata pelajaran</b> & <b>kode guru</b> per slot — cell kosong dilewati.</p></div>
+    ${card("Pilih Kelas", `
+      <form method="get" action="/admin/jadwal/template" class="inline-form">
+        ${field("Kelas", select("kelas_id", kelasRows.map((r) => ({ value: r.id, label: r.nama })), kelasId))}
+        ${button("Tampilkan Grid", { tone: "primary" })}
+      </form>`)}
+    ${gridHtml}
+    ${card("Daftar Kode", kodeLegend)}
+    <div class="form-actions">${linkBtn("/admin/jadwal", "← Kembali ke Jadwal", "ghost")}</div>`;
+  return wrap(ctx, "Template Jadwal", "/admin/jadwal/template", content);
+}
+
+function applyJadwalTemplate(req: Request, ctx: Ctx): Response {
+  return (async () => {
+    const f = await readForm(req);
+    const csrfErr = validateCsrf(f, ctx.csrf);
+    if (csrfErr) return new Response(csrfErr, { status: 403 });
+    const kelasId = parseIntSafe(f.get("kelas_id"));
+    if (!kelasId) return redirect("/admin/jadwal/template?err=Kelas wajib dipilih.");
+    const replace = f.get("replace") === "1";
+
+    // Kumpulkan isi cell
+    const mapelKodes = new Map<string, number>();
+    for (const r of db.query("SELECT id, kode FROM mata_pelajaran WHERE kode IS NOT NULL AND TRIM(kode) != ''").all() as { id: number; kode: string }[]) {
+      mapelKodes.set(r.kode.trim().toUpperCase(), r.id);
+    }
+    const guruKodes = new Map<string, number>();
+    for (const r of db.query("SELECT id, kode FROM guru WHERE kode IS NOT NULL AND TRIM(kode) != ''").all() as { id: number; kode: string }[]) {
+      guruKodes.set(r.kode.trim().toUpperCase(), r.id);
+    }
+
+    type Entry = { hari: number; jp: number; mapelId: number; guruId: number; mulai: string; selesai: string };
+    const entries: Entry[] = [];
+    const errors: string[] = [];
+    for (const slot of JADWAL_SLOTS) {
+      if (!slot.jp) continue;
+      for (const hari of TEMPLATE_DAYS) {
+        const m = (f.get(`m_${hari}_${slot.jp}`) ?? "").trim();
+        const g = (f.get(`g_${hari}_${slot.jp}`) ?? "").trim();
+        if (!m && !g) continue;
+        if (!m || !g) {
+          errors.push(`${dayName(hari)} JP ${slot.jp}: kode mapel & kode guru harus diisi berdua.`);
+          continue;
+        }
+        const mapelId = mapelKodes.get(m.toUpperCase());
+        const guruId = guruKodes.get(g.toUpperCase());
+        if (!mapelId) { errors.push(`${dayName(hari)} JP ${slot.jp}: kode mapel "${m}" tidak ditemukan.`); continue; }
+        if (!guruId) { errors.push(`${dayName(hari)} JP ${slot.jp}: kode guru "${g}" tidak ditemukan.`); continue; }
+        entries.push({ hari, jp: slot.jp, mapelId, guruId, mulai: slot.mulai, selesai: slot.selesai });
+      }
+    }
+    if (errors.length) return redirect("/admin/jadwal/template?kelas_id=" + kelasId + "&err=" + encodeURIComponent(errors[0] + (errors.length > 1 ? ` (dan ${errors.length - 1} error lain)` : "")));
+    if (!entries.length) return redirect("/admin/jadwal/template?kelas_id=" + kelasId + "&err=Grid kosong — tidak ada slot yang diisi.");
+
+    try {
+      db.exec("BEGIN");
+      if (replace) db.run("DELETE FROM jadwal WHERE kelas_id = ?", [kelasId]);
+      const ins = db.prepare("INSERT INTO jadwal (kelas_id, mata_pelajaran_id, guru_id, hari, jam_mulai, jam_selesai) VALUES (?,?,?,?,?,?)");
+      for (const e of entries) ins.run([kelasId, e.mapelId, e.guruId, e.hari, e.mulai, e.selesai]);
+      db.exec("COMMIT");
+    } catch (e) {
+      db.exec("ROLLBACK");
+      return redirect("/admin/jadwal/template?kelas_id=" + kelasId + "&err=" + encodeURIComponent("Gagal menyimpan: " + (e instanceof Error ? e.message : String(e))));
+    }
+    return redirect("/admin/jadwal/template?kelas_id=" + kelasId + "&ok=" + encodeURIComponent(`${entries.length} jadwal berhasil disimpan${replace ? " (jadwal lama dihapus)" : ""}.`));
   })();
 }
 
@@ -897,6 +1048,8 @@ export function registerAdmin() {
 
   add("GET", "/admin/jadwal", (req, ctx) => { const u = requireRole(ctx, "admin"); if (u instanceof Response) return u; return listJadwal(u, ctx); });
   add("POST", "/admin/jadwal", (req, ctx) => { const u = requireRole(ctx, "admin"); if (u instanceof Response) return u; return createJadwal(req, ctx); });
+  add("GET", "/admin/jadwal/template", (req, ctx) => { const u = requireRole(ctx, "admin"); if (u instanceof Response) return u; return jadwalTemplatePage(u, ctx); });
+  add("POST", "/admin/jadwal/template", (req, ctx) => { const u = requireRole(ctx, "admin"); if (u instanceof Response) return u; return applyJadwalTemplate(req, ctx); });
   add("GET", "/admin/jadwal/:id/edit", (req, ctx) => { const u = requireRole(ctx, "admin"); if (u instanceof Response) return u; return editJadwal(u, ctx); });
   add("POST", "/admin/jadwal/:id/update", (req, ctx) => { const u = requireRole(ctx, "admin"); if (u instanceof Response) return u; return updateJadwal(req, ctx); });
   add("POST", "/admin/jadwal/:id/delete", (req, ctx) => { const u = requireRole(ctx, "admin"); if (u instanceof Response) return u; return deleteJadwal(req, ctx); });

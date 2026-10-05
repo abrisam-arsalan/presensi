@@ -343,6 +343,19 @@ select.input { appearance: auto; }
 .pengumuman-body { font-size: 14px; white-space: normal; color: var(--ink); }
 .pengumuman-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
 
+/* ---------- Template Jadwal ---------- */
+.tpl-table { min-width: 760px; }
+.tpl-table th, .tpl-table td { text-align: center; padding: 6px; border-bottom: 2px solid var(--ink); white-space: normal; }
+.tpl-table thead th { background: var(--paper); }
+.tpl-slot { background: var(--paper); text-align: left; white-space: nowrap; }
+.tpl-rest { background: repeating-linear-gradient(45deg, var(--paper), var(--paper) 6px, var(--card) 6px, var(--card) 12px); color: var(--muted); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
+.tpl-cell { display: flex; flex-direction: column; gap: 4px; }
+.tpl-input { min-height: 34px; padding: 5px 7px; font-size: 12.5px; text-align: center; font-weight: 800; text-transform: uppercase; }
+.tpl-check { display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 700; margin: 12px 0 0; cursor: pointer; }
+.tpl-check input { width: 18px; height: 18px; accent-color: var(--ink); }
+.tpl-legend { display: flex; flex-direction: column; gap: 12px; font-size: 13px; }
+.tpl-legend .badge { margin: 2px 4px 2px 0; }
+
 /* ---------- Responsive ---------- */
 @media (min-width: 640px) {
   .inline-form { grid-template-columns: repeat(2, 1fr); }
